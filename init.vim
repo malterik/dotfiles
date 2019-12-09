@@ -1,22 +1,46 @@
 call plug#begin('~/.vim/plugged')
-
 " Use release branch (Recommend)
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
+"Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-json', {'do': 'yarn install --frozen-lockfile'}
 
 Plug 'airblade/vim-gitgutter'
-
+Plug 'rhysd/vim-clang-format'
+Plug 'rafi/awesome-vim-colorschemes'
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
+Plug 'tracyone/fzf-funky',{'on': 'CtrlPFunky'}
+Plug 'kizza/actionmenu.nvim'
 call plug#end()
+
 set cursorcolumn
 set cursorline
 set number relativenumber
 
 nmap <c-p> :FZF<cr>
 
+colorscheme afterglow
+"let g:afterglow_inherit_background=1
+let g:afterglow_blackout=1
 let mapleader = "-"
+
+let g:coc_global_extensions=1
 nmap <leader>b :e #<cr>
 imap jk <esc>
+nmap <c-e> :wa<cr>
+nnoremap <C-H> <C-W><C-H>
+nnoremap <C-J> <C-W><C-J>
+nnoremap <C-K> <C-W><C-K>
+nnoremap <C-L> <C-W><C-L>
+set hlsearch
+nnoremap <silent> <Space> :nohlsearch<Bar>:echo<CR>
+set tabstop=1
+set shiftwidth=2
+set expandtab
 
 " if hidden is not set, TextEdit might fail.
 set hidden
@@ -146,3 +170,78 @@ nnoremap <silent> <space>j  :<C-u>CocNext<CR>
 nnoremap <silent> <space>k  :<C-u>CocPrev<CR>
 " Resume latest coc list
 nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
+"
+" clang-autoformat
+let g:clang_format#detect_style_file=1
+let g:clang_format#auto_format=1
+" Destroys multicursor and snippets
+let g:clang_format#auto_format_on_insert_leave=0
+nmap <Leader>C :ClangFormatAutoToggle<CR>
+autocmd FileType c,cpp,objc nnoremap <buffer><Leader>cf :<C-u>ClangFormat<CR>
+autocmd FileType c,cpp,objc vnoremap <buffer><Leader>cf :ClangFormat<CR>
+
+" FZF floating window
+
+"Open FZF and choose floating window
+let g:fzf_layout = { 'window': 'call OpenFloatingWin()' }
+
+function! OpenFloatingWin()
+  let height = &lines - 3
+  let width = float2nr(&columns - (&columns * 2 / 10))
+  let col = float2nr((&columns - width) / 2)
+
+  "Set the position, size, etc. of the floating window.
+  "The size configuration here may not be so flexible, and there's room for further improvement.
+  let opts = {
+        \ 'relative': 'editor',
+        \ 'row': height * 0.3,
+        \ 'col': col + 30,
+        \ 'width': width * 2 / 3,
+        \ 'height': height / 2
+        \ }
+
+  let buf = nvim_create_buf(v:false, v:true)
+  let win = nvim_open_win(buf, v:true, opts)
+
+  "Set Floating Window Highlighting
+  call setwinvar(win, '&winhl', 'Normal:Pmenu')
+
+  setlocal
+        \ buftype=nofile
+        \ nobuflisted
+        \ bufhidden=hide
+        \ nonumber
+        \ norelativenumber
+        \ signcolumn=no
+endfunction
+
+" fzf funky
+nnoremap <Leader>fu :CtrlPFunky<Cr>
+" narrow the list down with a word under cursor
+nnoremap <Leader>fU :execute 'CtrlPFunky ' . expand('<cword>')<Cr>
+
+" actionmenu coc-integration
+let s:code_actions = []
+
+func! ActionMenuCodeActions() abort
+  let s:code_actions = CocAction('codeActions')
+  let l:menu_items = map(copy(s:code_actions), { index, item -> item['title'] })
+  call actionmenu#open(l:menu_items, 'ActionMenuCodeActionsCallback')
+endfunc
+
+func! ActionMenuCodeActionsCallback(index, item) abort
+  if a:index >= 0
+    let l:selected_code_action = s:code_actions[a:index]
+    let l:response = CocAction('doCodeAction', l:selected_code_action)
+  endif
+endfunc
+nnoremap <silent> <Leader>s :call ActionMenuCodeActions()<CR>
+
+func! Demo()
+  call actionmenu#open(['First', 'Second', 'Third'], 'Callback')
+endfunc
+
+func! Callback(index, item)
+  echo "I selected index " . a:index
+endfunc
+nnoremap <silent> <c-a> :call Demo()<CR>
